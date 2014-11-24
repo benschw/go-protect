@@ -1,10 +1,10 @@
 package service
 
 import (
-	"github.com/benschw/go-todo/api"
+	"github.com/benschw/go-protect/db"
 	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
+	// _ "github.com/go-sql-driver/mysql"
+	// "github.com/jinzhu/gorm"
 )
 
 type Config struct {
@@ -15,42 +15,21 @@ type Config struct {
 	DbName     string
 }
 
-type TodoService struct {
+type ProtectService struct {
 }
 
-func (s *TodoService) getDb(cfg Config) (gorm.DB, error) {
-	connectionString := cfg.DbUser + ":" + cfg.DbPassword + "@tcp(" + cfg.DbHost + ":3306)/" + cfg.DbName + "?charset=utf8&parseTime=True"
+func (s *ProtectService) Run(cfg Config) error {
+	db := db.New()
 
-	return gorm.Open("mysql", connectionString)
-}
+	todoResource := &KeyResource{db: db}
 
-func (s *TodoService) Migrate(cfg Config) error {
-	db, err := s.getDb(cfg)
-	if err != nil {
-		return err
-	}
-	db.SingularTable(true)
-
-	db.AutoMigrate(api.Todo{})
-	return nil
-}
-func (s *TodoService) Run(cfg Config) error {
-	db, err := s.getDb(cfg)
-	if err != nil {
-		return err
-	}
-	db.SingularTable(true)
-
-	todoResource := &TodoResource{db: db}
+	raftServer := raft.New("./foo", "localhost", "8080")
 
 	r := gin.Default()
 
-	r.GET("/todo", todoResource.GetAllTodos)
-	r.GET("/todo/:id", todoResource.GetTodo)
-	r.POST("/todo", todoResource.CreateTodo)
-	r.PUT("/todo/:id", todoResource.UpdateTodo)
-	r.PATCH("/todo/:id", todoResource.PatchTodo)
-	r.DELETE("/todo/:id", todoResource.DeleteTodo)
+	// r.GET("/todo", todoResource.GetAllTodos)
+	r.GET("/key/:id", todoResource.GetKey)
+	r.POST("/key", todoResource.CreateKey)
 
 	r.Run(cfg.SvcHost)
 
