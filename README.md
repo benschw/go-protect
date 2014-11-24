@@ -1,5 +1,7 @@
 ## REST Microservice in Go for Gin
 
+https://github.com/goraft/raftd
+
 Example (seed) project for microservices in go using the [Gin](http://gin-gonic.github.io/gin/) web framework.
 
 
