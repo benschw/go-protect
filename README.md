@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/benschw/go-protect.svg)](https://travis-ci.org/benschw/go-protect)
-[![Build Status](https://drone.io/github.com/benschw/go-protect/status.png)](https://drone.io/github.com/benschw/go-protect/latest)
 [![GoDoc](http://godoc.org/github.com/benschw/go-protect?status.png)](http://godoc.org/github.com/benschw/go-protect)
+[![Coverage Status](https://img.shields.io/coveralls/benschw/go-protect.svg)](https://coveralls.io/r/benschw/go-protect)
 
 	./go-protect -raft localhost:5000 -api localhost:6000 -data node1 -bootstrap serve
 	./go-protect -raft localhost:5001 -api localhost:6001 -data node2 -join localhost:5000 serve
