@@ -5,7 +5,10 @@ go:
 
 
 install:
-  - go get
+  - make deps
+
 
 script:
   - make build test-all
+go test
+$HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN

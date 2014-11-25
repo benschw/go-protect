@@ -3,6 +3,11 @@ default: build
 clean:
 	rm -rf node?
 
+deps:
+	go get;
+	go get code.google.com/p/go.tools/cmd/cover;
+	go get github.com/mattn/goveralls;
+
 build:
 	go build
 
@@ -16,7 +21,7 @@ test:
 	sleep 1; \
 	./go-protect -raft localhost:5002 -api localhost:6002 -data node3 -join localhost:5000 serve & \
 	pid3=$$!; \
-	go test ./...; \
+	go test -v -covermode=count -coverprofile=coverage.out; \
 	kill $$pid1; \
 	kill $$pid2; \
 	kill $$pid3; \
@@ -31,7 +36,7 @@ test-recover:
 	sleep 1; \
 	./go-protect -raft localhost:5002 -api localhost:6002 -data node3 -join localhost:5000 serve & \
 	pid3=$$!; \
-	go test ./...; \
+	go test; \
 	kill $$pid1; \
 	kill $$pid2; \
 	kill $$pid3; \
