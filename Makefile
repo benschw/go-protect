@@ -8,5 +8,5 @@ build:
 test:
 	./go-protect --config config.yaml server & \
 	pid=$$!; \
-	go test; \
+	go test ./...; \
 	kill $$pid
