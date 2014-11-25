@@ -11,5 +11,5 @@ script:
 - echo "$HOME/gopath/bin/goveralls -v -coverprofile coverage.out -service travis-ci -repotoken $COVERALLS_TOKEN"
 
 env:
-  coveralls_token:
+  COVERALLS_TOKEN:
     secure: Py37Jasj8eG0pUtFI82sdxmWNq/HC7muBztK9AP10qxm51vH9XiiPbFm74SagDCU2Cxkt7ds9rdLvu5umUrmLdtalw5EaJ8LX8UQhRsrxlLWo+bxcSaPi/t1mPEPKEKyWx/FHf4fJApcfSp7uRYG+h7wSRCBMES5bRrE7q4aIEM=
