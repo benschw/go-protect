@@ -1,3 +1,6 @@
+[![Build Status](https://drone.io/github.com/benschw/go-protect/status.png)](https://drone.io/github.com/benschw/go-protect/latest)
+[![GoDoc](http://godoc.org/github.com/benschw/go-protect?status.png)](http://godoc.org/github.com/benschw/go-protect)
+
 	./go-protect -raft localhost:5000 -api localhost:6000 -data node1 -bootstrap serve
 	./go-protect -raft localhost:5001 -api localhost:6001 -data node2 -join localhost:5000 serve
 	./go-protect -raft localhost:5002 -api localhost:6002 -data node3 -join localhost:5000 serve
