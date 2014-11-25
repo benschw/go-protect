@@ -8,7 +8,7 @@ install:
 
 script:
 - make build test-all
-- $HOME/gopath/bin/goveralls -v -coverprofile coverage.out -service travis-ci -repotoken $COVERALLS_TOKEN
+- echo "$HOME/gopath/bin/goveralls -v -coverprofile coverage.out -service travis-ci -repotoken $COVERALLS_TOKEN"
 
 env:
   coveralls_token:
