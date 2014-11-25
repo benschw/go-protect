@@ -14,15 +14,6 @@ import (
 	"time"
 )
 
-type Config struct {
-	RaftHost string
-	RaftPort int
-	ApiHost  string
-	ApiPort  int
-	DataDir  string
-	JoinAddr string
-}
-
 type Service struct {
 }
 
@@ -40,35 +31,29 @@ func (s *Service) Run(cfg Config) error {
 
 	raftServer := server.New(cfg.DataDir, db, cfg.RaftHost, cfg.RaftPort)
 
-	runRaftServer(raftServer, cfg.JoinAddr)
-
 	todoResource := &KeyResource{repo: Repository{db: db, raftServer: raftServer}}
+	mgmtResource := &MgmtResource{raftServer: raftServer}
 
+	// Start API HTTP Server
 	r := gin.Default()
 
-	// r.GET("/todo", todoResource.GetAllTodos)
+	r.GET("/mgmt/peer", mgmtResource.GetPeers)
+	r.GET("/mgmt/leader", mgmtResource.GetLeader)
+
 	r.GET("/key/:id", todoResource.GetKey)
 	r.POST("/key", todoResource.CreateKey)
 
-	r.Run(fmt.Sprintf("%s:%d", cfg.ApiHost, cfg.ApiPort))
+	go r.Run(fmt.Sprintf("%s:%d", cfg.ApiHost, cfg.ApiPort))
 
-	return nil
-}
-
-func runRaftServer(raftServer *server.Server, leader string) {
-
+	// Start Raft Server
 	if err := raftServer.Start(); err != nil {
 		log.Fatal(err)
 	}
-	if err := raftServer.Join(leader); err != nil {
+	if err := raftServer.Join(cfg.JoinAddr); err != nil {
 		log.Fatal(err)
 	}
 
-	go startRaftHttpServer(raftServer)
-}
-
-func startRaftHttpServer(raftServer *server.Server) {
-
 	log.Fatal(raftServer.ListenAndServe())
 
+	return nil
 }

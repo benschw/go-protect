@@ -52,6 +52,12 @@ func New(path string, db *db.DB, host string, port int) *Server {
 	return s
 }
 
+// Returns the backing raft.Server
+func (s *Server) RaftServer() raft.Server {
+	return s.raftServer
+}
+
+// Starts the Raft Server
 func (s *Server) Start() error {
 	var err error
 
@@ -69,6 +75,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Either Joins an existing leader or Initializes a new cluster
 func (s *Server) Join(leader string) error {
 
 	if leader != "" {
@@ -102,11 +109,6 @@ func (s *Server) Join(leader string) error {
 		log.Println("Recovered from log")
 	}
 	return nil
-}
-
-func (s *Server) DoCommand(command raft.Command) error {
-	_, err := s.raftServer.Do(command)
-	return err
 }
 
 // Starts the http server.

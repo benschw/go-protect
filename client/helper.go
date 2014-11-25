@@ -46,6 +46,14 @@ func encodeEntity(entity interface{}) (io.Reader, error) {
 	}
 }
 
+func processResponseBytes(r *http.Response, expectedStatus int) ([]byte, error) {
+	if err := processResponse(r, expectedStatus); err != nil {
+		return nil, err
+	}
+
+	respBody, err := ioutil.ReadAll(r.Body)
+	return respBody, err
+}
 func processResponseEntity(r *http.Response, entity interface{}, expectedStatus int) error {
 	if err := processResponse(r, expectedStatus); err != nil {
 		return err

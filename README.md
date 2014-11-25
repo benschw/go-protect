@@ -1,3 +1,10 @@
+	./go-protect -raft localhost:5000 -api localhost:6000 -data node1 serve	
+	./go-protect -raft localhost:5001 -api localhost:6001 -data node2 -join localhost:5000 serve
+	./go-protect -raft localhost:5002 -api localhost:6002 -data node3 -join localhost:5000 serve
+
+	curl -H "Content-Type: application/json" -d '{"id":"xyz","key":"blahblahblah"}' http://localhost:6000/key
+	curl http://localhost:6000/key/xyz
+
 ## REST Microservice in Go for Gin
 
 https://github.com/goraft/raftd

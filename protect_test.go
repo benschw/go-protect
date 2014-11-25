@@ -28,9 +28,6 @@ func TestCreateKey(t *testing.T) {
 	if key.Id != "foo" && key.Key != keyStr {
 		t.Error("returned key not right")
 	}
-
-	// cleanup
-	//	_ = client.DeleteTodo(todo.Id)
 }
 
 func TestGetKey(t *testing.T) {
@@ -52,7 +49,38 @@ func TestGetKey(t *testing.T) {
 	if key.Id != "foo" && key.Key != keyStr {
 		t.Error("returned todo not right")
 	}
+}
 
-	// cleanup
-	// _ = client.DeleteTodo(todo.Id)
+func TestMgmtGetPeers(t *testing.T) {
+
+	// given
+	client := client.MgmtClient{Host: "http://localhost:6000"}
+
+	// when
+	peers, err := client.GetPeers()
+
+	// then
+	if err != nil {
+		t.Error(err)
+	}
+	if len(peers) != 2 {
+		t.Error("wrong number of peers")
+	}
+}
+
+func TestMgmtGetLeader(t *testing.T) {
+
+	// given
+	client := client.MgmtClient{Host: "http://localhost:6000"}
+
+	// when
+	leader, err := client.GetLeader()
+
+	// then
+	if err != nil {
+		t.Error(err)
+	}
+	if len(leader) < 1 {
+		t.Error("leader name not returned")
+	}
 }

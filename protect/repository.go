@@ -15,7 +15,7 @@ type Repository struct {
 func (r *Repository) Set(key api.Key) (api.Key, error) {
 
 	// Execute the command against the Raft server.
-	if err := r.raftServer.DoCommand(command.NewWriteCommand(key.Id, key.Key)); err != nil {
+	if _, err := r.raftServer.RaftServer().Do(command.NewWriteCommand(key.Id, key.Key)); err != nil {
 		return key, err
 	}
 
