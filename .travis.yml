@@ -8,4 +8,4 @@ install:
   - go get
 
 script:
-  - make test-all
+  - make build test-all
