@@ -5,7 +5,7 @@ go:
 
 
 install:
-	- go get
+  - go get
 
 script:
-	- make test-all
+  - make test-all
