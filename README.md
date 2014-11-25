@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/benschw/go-protect.svg)](https://travis-ci.org/benschw/go-protect)
 [![Build Status](https://drone.io/github.com/benschw/go-protect/status.png)](https://drone.io/github.com/benschw/go-protect/latest)
 [![GoDoc](http://godoc.org/github.com/benschw/go-protect?status.png)](http://godoc.org/github.com/benschw/go-protect)
 
