@@ -1,17 +1,14 @@
-package service
+package protect
 
 import (
 	//	"fmt"
-	"github.com/benschw/go-protect/db"
-	//	"github.com/benschw/go-protect/raft/client"
 	"github.com/benschw/go-protect/raft/command"
+	"github.com/benschw/go-protect/raft/db"
 	"github.com/benschw/go-protect/raft/server"
 	"github.com/gin-gonic/gin"
 	"github.com/goraft/raft"
 	"log"
 	"os"
-	// _ "github.com/go-sql-driver/mysql"
-	// "github.com/jinzhu/gorm"
 )
 
 type Config struct {
@@ -22,10 +19,10 @@ type Config struct {
 	DbName     string
 }
 
-type ProtectService struct {
+type Service struct {
 }
 
-func (s *ProtectService) Run(cfg Config) error {
+func (s *Service) Run(cfg Config) error {
 	leader := ""
 
 	raft.RegisterCommand(&command.WriteCommand{})
@@ -34,20 +31,13 @@ func (s *ProtectService) Run(cfg Config) error {
 		log.Fatalf("Unable to create path: %v", err)
 	}
 
-	raftServer := server.New("./data", "localhost", 8081)
-
-	if err := raftServer.Start(); err != nil {
-		log.Fatal(err)
-	}
-	if err := raftServer.Join(leader); err != nil {
-		log.Fatal(err)
-	}
-
-	go startRaftServer(raftServer)
-
 	db := db.New()
 
-	todoResource := &KeyResource{db: db}
+	raftServer := server.New("./data", db, "localhost", 8081)
+
+	runRaftServer(raftServer, leader)
+
+	todoResource := &KeyResource{repo: Repository{db: db, raftServer: raftServer}}
 
 	r := gin.Default()
 
@@ -60,7 +50,19 @@ func (s *ProtectService) Run(cfg Config) error {
 	return nil
 }
 
-func startRaftServer(raftServer *server.Server) {
+func runRaftServer(raftServer *server.Server, leader string) {
+
+	if err := raftServer.Start(); err != nil {
+		log.Fatal(err)
+	}
+	if err := raftServer.Join(leader); err != nil {
+		log.Fatal(err)
+	}
+
+	go startRaftHttpServer(raftServer)
+}
+
+func startRaftHttpServer(raftServer *server.Server) {
 
 	log.Fatal(raftServer.ListenAndServe())
 

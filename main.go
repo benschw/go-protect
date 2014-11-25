@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"github.com/benschw/go-protect/service"
+	"github.com/benschw/go-protect/protect"
 	"github.com/codegangsta/cli"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
@@ -10,9 +10,9 @@ import (
 	"os"
 )
 
-func getConfig(c *cli.Context) (service.Config, error) {
+func getConfig(c *cli.Context) (protect.Config, error) {
 	yamlPath := c.GlobalString("config")
-	config := service.Config{}
+	config := protect.Config{}
 
 	if _, err := os.Stat(yamlPath); err != nil {
 		return config, errors.New("config path not valid")
@@ -49,7 +49,7 @@ func main() {
 					return
 				}
 
-				svc := service.ProtectService{}
+				svc := protect.Service{}
 
 				if err = svc.Run(cfg); err != nil {
 					log.Fatal(err)
