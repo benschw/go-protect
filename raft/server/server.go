@@ -1,13 +1,13 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"github.com/benschw/go-protect/raft/client"
 	"github.com/benschw/go-protect/raft/db"
 	"github.com/goraft/raft"
 	"github.com/gorilla/mux"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"path/filepath"
@@ -61,13 +61,11 @@ func (s *Server) RaftServer() raft.Server {
 func (s *Server) Start() error {
 	var err error
 
-	log.Printf("Initializing Raft Server: %s", s.path)
-
 	// Initialize and start Raft server.
 	transporter := raft.NewHTTPTransporter("/raft", 200*time.Millisecond)
 	s.raftServer, err = raft.NewServer(s.name, s.path, transporter, nil, s.db, "")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	transporter.Install(s.raftServer, s)
 	s.raftServer.Start()
@@ -75,46 +73,43 @@ func (s *Server) Start() error {
 	return nil
 }
 
+func (s *Server) Bootstrap() error {
+	if !s.raftServer.IsLogEmpty() {
+		return errors.New("Cannot bootstrap new cluster with an existing log")
+	}
+
+	_, err := s.raftServer.Do(&raft.DefaultJoinCommand{
+		Name:             s.raftServer.Name(),
+		ConnectionString: s.connectionString(),
+	})
+	return err
+}
+
+// Either Joins an existing leader or Initializes a new cluster
+func (s *Server) IsInitialized() bool {
+	return !s.raftServer.IsLogEmpty()
+}
+
 // Either Joins an existing leader or Initializes a new cluster
 func (s *Server) Join(leader string) error {
 
-	if leader != "" {
-		// Join to leader if specified.
-
-		log.Println("Attempting to join leader:", leader)
-
-		if !s.raftServer.IsLogEmpty() {
-			log.Fatal("Cannot join with an existing log")
-		}
-		c := client.RaftMembershipClient{Host: fmt.Sprintf("http://%s", leader)}
-		err := c.Join(s.raftServer.Name(), s.connectionString())
-		if err != nil {
-			log.Fatal(err)
-		}
-
-	} else if s.raftServer.IsLogEmpty() {
-		// Initialize the server by joining itself.
-
-		log.Println("Initializing new cluster")
-
-		_, err := s.raftServer.Do(&raft.DefaultJoinCommand{
-			Name:             s.raftServer.Name(),
-			ConnectionString: s.connectionString(),
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-	} else {
-		log.Println("Recovered from log")
+	if leader == "" {
+		return errors.New("Must specify a leader to join a cluster")
 	}
-	return nil
+
+	if !s.raftServer.IsLogEmpty() {
+		return errors.New("Cannot join with an existing log")
+	}
+
+	// Join to leader if specified.
+
+	c := client.RaftMembershipClient{Host: fmt.Sprintf("http://%s", leader)}
+	err := c.Join(s.raftServer.Name(), s.connectionString())
+	return err
 }
 
 // Starts the http server.
 func (s *Server) ListenAndServe() error {
-
-	log.Println("Initializing HTTP server")
 
 	// Initialize and start HTTP server.
 	s.httpServer = &http.Server{
@@ -125,8 +120,6 @@ func (s *Server) ListenAndServe() error {
 	joinResource := JoinResource{raftServer: s.raftServer}
 
 	s.router.HandleFunc("/join", joinResource.joinHandler).Methods("POST")
-
-	log.Println("Listening at:", s.connectionString())
 
 	return s.httpServer.ListenAndServe()
 }

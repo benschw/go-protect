@@ -16,6 +16,7 @@ func main() {
 	var verbose bool
 	var trace bool
 	var debug bool
+	var bootstrap bool
 	var dataDir string
 	var raftAddr string
 	var join string
@@ -25,10 +26,11 @@ func main() {
 	flag.BoolVar(&trace, "trace", false, "Raft trace debugging")
 	flag.BoolVar(&debug, "debug", false, "Raft debugging")
 
-	flag.StringVar(&dataDir, "data", "./data", "raft data dir path")
-	flag.StringVar(&raftAddr, "raft", "localhost:5000", "raft hostname:port")
-	flag.StringVar(&join, "join", "", "host:port of leader to join")
-	flag.StringVar(&apiAddr, "api", "localhost:6000", "api hostname:port")
+	flag.BoolVar(&bootstrap, "bootstrap", false, "Bootstrap Raft cluster")
+	flag.StringVar(&dataDir, "data", "./data", "Raft data dir path")
+	flag.StringVar(&raftAddr, "raft", "localhost:5000", "Raft hostname:port")
+	flag.StringVar(&join, "join", "", "Leader host:port to join")
+	flag.StringVar(&apiAddr, "api", "localhost:6000", "API hostname:port")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [arguments] <command> \n", os.Args[0])
@@ -63,12 +65,13 @@ func main() {
 	aAddrParts := strings.Split(apiAddr, ":")
 	aPort, _ := strconv.Atoi(aAddrParts[1])
 	cfg := protect.Config{
-		RaftHost: rAddrParts[0],
-		RaftPort: rPort,
-		ApiHost:  aAddrParts[0],
-		ApiPort:  aPort,
-		DataDir:  dataDir,
-		JoinAddr: join,
+		RaftHost:  rAddrParts[0],
+		RaftPort:  rPort,
+		ApiHost:   aAddrParts[0],
+		ApiPort:   aPort,
+		DataDir:   dataDir,
+		JoinAddr:  join,
+		Bootstrap: bootstrap,
 	}
 
 	// Run Main App

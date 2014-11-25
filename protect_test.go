@@ -80,7 +80,7 @@ func TestMgmtGetLeader(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(leader) < 1 {
+	if leader == "" {
 		t.Error("leader name not returned")
 	}
 }
