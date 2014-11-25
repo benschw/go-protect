@@ -1,79 +1,134 @@
 package main
 
 import (
-	"errors"
 	"github.com/benschw/go-protect/protect"
-	"github.com/codegangsta/cli"
-	"gopkg.in/yaml.v1"
-	"io/ioutil"
+	// "gopkg.in/yaml.v1"
+	"flag"
+	"fmt"
+	"github.com/goraft/raft"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 )
 
-func getConfig(c *cli.Context) (protect.Config, error) {
-	yamlPath := c.GlobalString("config")
-	config := protect.Config{}
-
-	if _, err := os.Stat(yamlPath); err != nil {
-		return config, errors.New("config path not valid")
-	}
-
-	ymlData, err := ioutil.ReadFile(yamlPath)
-	if err != nil {
-		return config, err
-	}
-
-	err = yaml.Unmarshal([]byte(ymlData), &config)
-	return config, err
-}
-
 func main() {
+	var verbose bool
+	var trace bool
+	var debug bool
+	var dataDir string
+	var raftAddr string
+	var join string
+	var apiAddr string
 
-	app := cli.NewApp()
-	app.Name = "go-protect"
-	app.Usage = "work with the `go-protect` service"
-	app.Version = "0.0.1"
+	flag.BoolVar(&verbose, "v", false, "verbose logging")
+	flag.BoolVar(&trace, "trace", false, "Raft trace debugging")
+	flag.BoolVar(&debug, "debug", false, "Raft debugging")
 
-	app.Flags = []cli.Flag{
-		cli.StringFlag{"config, c", "config.yaml", "config file to use"},
+	flag.StringVar(&dataDir, "data", "./data", "raft data dir path")
+	flag.StringVar(&raftAddr, "raft", "localhost:5000", "raft hostname:port")
+	flag.StringVar(&join, "join", "", "host:port of leader to join")
+	flag.StringVar(&apiAddr, "api", "localhost:6000", "api hostname:port")
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [arguments] <command> \n", os.Args[0])
+		flag.PrintDefaults()
 	}
 
-	app.Commands = []cli.Command{
-		{
-			Name:  "server",
-			Usage: "Run the http server",
-			Action: func(c *cli.Context) {
-				cfg, err := getConfig(c)
-				if err != nil {
-					log.Fatal(err)
-					return
-				}
-
-				svc := protect.Service{}
-
-				if err = svc.Run(cfg); err != nil {
-					log.Fatal(err)
-				}
-			},
-		},
-		// {
-		// 	Name:  "migratedb",
-		// 	Usage: "Perform database migrations",
-		// 	Action: func(c *cli.Context) {
-		// 		cfg, err := getConfig(c)
-		// 		if err != nil {
-		// 			log.Fatal(err)
-		// 			return
-		// 		}
-
-		// 		svc := service.TodoService{}
-
-		// 		if err = svc.Migrate(cfg); err != nil {
-		// 			log.Fatal(err)
-		// 		}
-		// 	},
-		// },
+	log.SetFlags(0)
+	flag.Parse()
+	if verbose {
+		log.Print("Verbose logging enabled.")
 	}
-	app.Run(os.Args)
+	if trace {
+		raft.SetLogLevel(raft.Trace)
+		log.Print("Raft trace debugging enabled.")
+	} else if debug {
+		raft.SetLogLevel(raft.Debug)
+		log.Print("Raft debugging enabled.")
+	}
+
+	log.SetFlags(log.LstdFlags)
+
+	// pull desired command/operation from args
+	if flag.NArg() == 0 {
+		flag.Usage()
+		log.Fatal("Command argument required")
+	}
+	command := flag.Arg(0)
+
+	// Populate Config
+	rAddrParts := strings.Split(raftAddr, ":")
+	rPort, _ := strconv.Atoi(rAddrParts[1])
+	aAddrParts := strings.Split(apiAddr, ":")
+	aPort, _ := strconv.Atoi(aAddrParts[1])
+	cfg := protect.Config{
+		RaftHost: rAddrParts[0],
+		RaftPort: rPort,
+		ApiHost:  aAddrParts[0],
+		ApiPort:  aPort,
+		DataDir:  dataDir,
+		JoinAddr: join,
+	}
+
+	// Run Main App
+	switch command {
+	case "serve":
+		svc := protect.Service{}
+
+		if err := svc.Run(cfg); err != nil {
+			log.Fatal(err)
+		}
+	default:
+		flag.Usage()
+		log.Fatalf("Unknown Command: %s", command)
+	}
+
+	// app := cli.NewApp()
+	// app.Name = "go-protect"
+	// app.Usage = "work with the `go-protect` service"
+	// app.Version = "0.0.1"
+
+	// app.Flags = []cli.Flag{
+	// 	cli.StringFlag{"config, c", "config.yaml", "config file to use"},
+	// }
+
+	// app.Commands = []cli.Command{
+	// 	{
+	// 		Name:  "server",
+	// 		Usage: "Run the http server",
+	// 		Action: func(c *cli.Context) {
+	// 			cfg, err := getConfig(c)
+	// 			if err != nil {
+	// 				log.Fatal(err)
+	// 				return
+	// 			}
+
+	// 			svc := protect.Service{}
+
+	// 			if err = svc.Run(cfg); err != nil {
+	// 				log.Fatal(err)
+	// 			}
+	// 		},
+	// 	},
+	// 	// {
+	// 	// 	Name:  "migratedb",
+	// 	// 	Usage: "Perform database migrations",
+	// 	// 	Action: func(c *cli.Context) {
+	// 	// 		cfg, err := getConfig(c)
+	// 	// 		if err != nil {
+	// 	// 			log.Fatal(err)
+	// 	// 			return
+	// 	// 		}
+
+	// 	// 		svc := service.TodoService{}
+
+	// 	// 		if err = svc.Migrate(cfg); err != nil {
+	// 	// 			log.Fatal(err)
+	// 	// 		}
+	// 	// 	},
+	// 	// },
+	// }
+	// app.Run(os.Args)
 
 }

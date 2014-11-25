@@ -2,40 +2,45 @@ package protect
 
 import (
 	//	"fmt"
+	"fmt"
 	"github.com/benschw/go-protect/raft/command"
 	"github.com/benschw/go-protect/raft/db"
 	"github.com/benschw/go-protect/raft/server"
 	"github.com/gin-gonic/gin"
 	"github.com/goraft/raft"
 	"log"
+	"math/rand"
 	"os"
+	"time"
 )
 
 type Config struct {
-	SvcHost    string
-	DbUser     string
-	DbPassword string
-	DbHost     string
-	DbName     string
+	RaftHost string
+	RaftPort int
+	ApiHost  string
+	ApiPort  int
+	DataDir  string
+	JoinAddr string
 }
 
 type Service struct {
 }
 
 func (s *Service) Run(cfg Config) error {
-	leader := ""
+
+	rand.Seed(time.Now().UnixNano())
 
 	raft.RegisterCommand(&command.WriteCommand{})
 
-	if err := os.MkdirAll("data", 0744); err != nil {
+	if err := os.MkdirAll(cfg.DataDir, 0744); err != nil {
 		log.Fatalf("Unable to create path: %v", err)
 	}
 
 	db := db.New()
 
-	raftServer := server.New("./data", db, "localhost", 8081)
+	raftServer := server.New(cfg.DataDir, db, cfg.RaftHost, cfg.RaftPort)
 
-	runRaftServer(raftServer, leader)
+	runRaftServer(raftServer, cfg.JoinAddr)
 
 	todoResource := &KeyResource{repo: Repository{db: db, raftServer: raftServer}}
 
@@ -45,7 +50,7 @@ func (s *Service) Run(cfg Config) error {
 	r.GET("/key/:id", todoResource.GetKey)
 	r.POST("/key", todoResource.CreateKey)
 
-	r.Run(cfg.SvcHost)
+	r.Run(fmt.Sprintf("%s:%d", cfg.ApiHost, cfg.ApiPort))
 
 	return nil
 }

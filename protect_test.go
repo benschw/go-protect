@@ -13,7 +13,7 @@ var _ = log.Print // For debugging; delete when done.
 func TestCreateKey(t *testing.T) {
 
 	// given
-	client := client.ProtectClient{Host: "http://localhost:8080"}
+	client := client.ProtectClient{Host: "http://localhost:6000"}
 
 	keyStr := "1g34jh142jhg1234j412uyg142iuy124guy142g"
 
@@ -36,7 +36,7 @@ func TestCreateKey(t *testing.T) {
 func TestGetKey(t *testing.T) {
 
 	// given
-	client := client.ProtectClient{Host: "http://localhost:8080"}
+	client := client.ProtectClient{Host: "http://localhost:6000"}
 	keyStr := "1g34jh142jhg1234j412uyg142iuy124guy142g"
 	keyCreate, _ := client.CreateKey("foo", keyStr)
 	id := keyCreate.Id

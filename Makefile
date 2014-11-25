@@ -6,7 +6,7 @@ build:
 	go build
 
 test:
-	./go-protect --config config.yaml server & \
+	./go-protect serve & \
 	pid=$$!; \
 	go test ./...; \
 	kill $$pid
