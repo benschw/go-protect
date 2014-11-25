@@ -1,14 +1,15 @@
 language: go
 
 go:
-  - 1.3
-
+- 1.3
 
 install:
-  - make deps
-
+- make deps
 
 script:
-  - make build test-all
-go test
-$HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+- make build test-all
+- $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $secure
+
+env:
+  global:
+    secure: Py37Jasj8eG0pUtFI82sdxmWNq/HC7muBztK9AP10qxm51vH9XiiPbFm74SagDCU2Cxkt7ds9rdLvu5umUrmLdtalw5EaJ8LX8UQhRsrxlLWo+bxcSaPi/t1mPEPKEKyWx/FHf4fJApcfSp7uRYG+h7wSRCBMES5bRrE7q4aIEM=

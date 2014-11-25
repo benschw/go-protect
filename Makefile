@@ -12,6 +12,7 @@ build:
 	go build
 
 test-all: test test-recover
+
 test:
 	./go-protect -raft localhost:5000 -api localhost:6000 -data node1 -bootstrap serve	& \
 	pid1=$$!; \
