@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/benschw/go-protect/client"
-	"github.com/benschw/go-protect/protect"
 	. "gopkg.in/check.v1"
 	"log"
 	"testing"
+	"time"
 )
 
 var _ = fmt.Print // For debugging; delete when done.
@@ -16,31 +16,36 @@ var _ = log.Print // For debugging; delete when done.
 func Test(t *testing.T) { TestingT(t) }
 
 type MySuite struct {
-	cfg protect.Config
+	members int
+	cluster *TestCluster
+
+	protectClient  client.ProtectClient
+	fProtectClient client.ProtectClient
+	clusterClient  client.ClusterClient
+	fClusterClient client.ClusterClient
 }
 
 var _ = Suite(&MySuite{})
 
 func (s *MySuite) SetUpSuite(c *C) {
-	s.cfg = NewMemCluster()
-}
+	s.members = 3
+	s.cluster = NewTestCluster(s.members)
 
-// func (s *MySuite) TestHelloWorld(c *C) {
-// 	c.Assert(42, Equals, "42")
-// 	c.Assert(io.ErrClosedPipe, ErrorMatches, "io: .*on closed pipe")
-// 	c.Check(42, Equals, 42)
-// }
+	s.protectClient = client.ProtectClient{Host: fmt.Sprintf("http://%s:%d", s.cluster.leaderConfig.ApiHost, s.cluster.leaderConfig.ApiPort)}
+	s.fProtectClient = client.ProtectClient{Host: fmt.Sprintf("http://%s:%d", s.cluster.followerConfigs[0].ApiHost, s.cluster.followerConfigs[0].ApiPort)}
+
+	s.clusterClient = client.ClusterClient{Host: fmt.Sprintf("http://%s:%d", s.cluster.leaderConfig.ApiHost, s.cluster.leaderConfig.ApiPort)}
+	s.fClusterClient = client.ClusterClient{Host: fmt.Sprintf("http://%s:%d", s.cluster.followerConfigs[0].ApiHost, s.cluster.followerConfigs[0].ApiPort)}
+}
 
 func (s *MySuite) TestCreateKey(c *C) {
 
 	// given
-	client := client.ProtectClient{Host: fmt.Sprintf("http://%s:%d", s.cfg.ApiHost, s.cfg.ApiPort)}
-
 	idStr := "foo"
 	keyStr := "1g34jh142jhg1234j412uyg142iuy124guy142g"
 
 	// when
-	key, err := client.CreateKey(idStr, keyStr)
+	key, err := s.protectClient.CreateKey(idStr, keyStr)
 
 	//then
 	c.Assert(err, Equals, nil)
@@ -51,14 +56,12 @@ func (s *MySuite) TestCreateKey(c *C) {
 func (s *MySuite) TestGetKey(c *C) {
 
 	// given
-	client := client.ProtectClient{Host: fmt.Sprintf("http://%s:%d", s.cfg.ApiHost, s.cfg.ApiPort)}
-
 	idStr := "foo"
 	keyStr := "1g34jh142jhg1234j412uyg142iuy124guy142g"
-	client.CreateKey(idStr, keyStr)
+	s.protectClient.CreateKey(idStr, keyStr)
 
 	// when
-	key, err := client.GetKey(idStr)
+	key, err := s.protectClient.GetKey(idStr)
 
 	// then
 	c.Assert(err, Equals, nil)
@@ -66,28 +69,49 @@ func (s *MySuite) TestGetKey(c *C) {
 	c.Assert(key.Key, Equals, keyStr)
 }
 
-func (s *MySuite) TestMgmtGetPeers(c *C) {
+func (s *MySuite) TestGetKeyFromFollower(c *C) {
 
 	// given
-	client := client.MgmtClient{Host: fmt.Sprintf("http://%s:%d", s.cfg.ApiHost, s.cfg.ApiPort)}
+	idStr := "foo"
+	keyStr := "1g34jh142jhg1234j412uyg142iuy124guy142g"
+	s.protectClient.CreateKey(idStr, keyStr)
+	time.Sleep(100 * time.Millisecond) // give it time to become consistent
 
 	// when
-	peers, err := client.GetPeers()
+	key, err := s.fProtectClient.GetKey(idStr)
 
 	// then
 	c.Assert(err, Equals, nil)
-	c.Assert(len(peers), Equals, 2)
+	c.Assert(key.Id, Equals, idStr)
+	c.Assert(key.Key, Equals, keyStr)
 }
 
-func (s *MySuite) TestMgmtGetLeader(c *C) {
-
-	// given
-	client := client.MgmtClient{Host: fmt.Sprintf("http://%s:%d", s.cfg.ApiHost, s.cfg.ApiPort)}
+func (s *MySuite) TestClusterGetPeers(c *C) {
 
 	// when
-	leader, err := client.GetLeader()
+	peers, err := s.clusterClient.GetPeers()
+
+	// then
+	c.Assert(err, Equals, nil)
+	c.Assert(len(peers), Equals, s.members-1)
+}
+
+func (s *MySuite) TestClusterGetLeader(c *C) {
+
+	// when
+	leader, err := s.clusterClient.GetLeader()
 
 	// then
 	c.Assert(err, Equals, nil)
 	c.Assert(leader, Not(Equals), "")
+}
+
+func (s *MySuite) TestClusterGetMembers(c *C) {
+
+	// when
+	members, err := s.clusterClient.GetMembers()
+
+	// then
+	c.Assert(err, Equals, nil)
+	c.Assert(len(members), Equals, s.members)
 }

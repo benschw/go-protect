@@ -7,14 +7,26 @@ import (
 
 var _ = log.Print
 
-type MgmtClient struct {
+type ClusterClient struct {
 	Host string
 }
 
-func (c *MgmtClient) GetPeers() (map[string]*raft.Peer, error) {
+func (c *ClusterClient) GetMembers() (map[string]*raft.Peer, error) {
+	var members map[string]*raft.Peer
+
+	url := c.Host + "/cluster/member"
+	r, err := makeRequest("GET", url, nil)
+	if err != nil {
+		return members, err
+	}
+	err = processResponseEntity(r, &members, 200)
+	return members, err
+}
+
+func (c *ClusterClient) GetPeers() (map[string]*raft.Peer, error) {
 	var peers map[string]*raft.Peer
 
-	url := c.Host + "/mgmt/peer"
+	url := c.Host + "/cluster/peer"
 	r, err := makeRequest("GET", url, nil)
 	if err != nil {
 		return peers, err
@@ -23,9 +35,9 @@ func (c *MgmtClient) GetPeers() (map[string]*raft.Peer, error) {
 	return peers, err
 }
 
-func (c *MgmtClient) GetLeader() (string, error) {
+func (c *ClusterClient) GetLeader() (string, error) {
 
-	url := c.Host + "/mgmt/leader"
+	url := c.Host + "/cluster/leader"
 	r, err := makeRequest("GET", url, nil)
 	if err != nil {
 		return "", err

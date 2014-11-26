@@ -35,15 +35,16 @@ func (s *Service) Run(cfg Config) error {
 	raftServer := server.New(cfg.DataDir, db, cfg.RaftHost, cfg.RaftPort)
 
 	todoResource := &KeyResource{repo: Repository{db: db, raftServer: raftServer}}
-	mgmtResource := &MgmtResource{raftServer: raftServer}
+	clusterResource := &ClusterResource{raftServer: raftServer, config: cfg}
 
 	// Start API HTTP Server
 	log.Println("Initializing API Server")
 
 	r := gin.Default()
 
-	r.GET("/mgmt/peer", mgmtResource.GetPeers)
-	r.GET("/mgmt/leader", mgmtResource.GetLeader)
+	r.GET("/cluster/member", clusterResource.GetMembers)
+	r.GET("/cluster/peer", clusterResource.GetPeers)
+	r.GET("/cluster/leader", clusterResource.GetLeader)
 
 	r.GET("/key/:id", todoResource.GetKey)
 	r.POST("/key", todoResource.CreateKey)

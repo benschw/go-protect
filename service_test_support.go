@@ -16,8 +16,26 @@ import (
 var _ = fmt.Print // For debugging; delete when done.
 var _ = log.Print // For debugging; delete when done.
 
+// Get a random available port
+func GetRandomPort() int {
+	l, _ := net.Listen("tcp", ":0")
+	defer l.Close()
+	addrParts := strings.Split(l.Addr().String(), ":")
+	port, _ := strconv.Atoi(addrParts[len(addrParts)-1])
+
+	return port
+}
+
+// Get a random available directory
+func GetRandomDataDir() string {
+	nodeStr := fmt.Sprintf("%07x", rand.Int())[0:7]
+
+	return fmt.Sprintf("test-data/%s", nodeStr)
+}
+
 type RandomApiFactory struct{}
 
+// Generate a random config
 func (a *RandomApiFactory) Config(bootstrap bool, leaderConfig *protect.Config) *protect.Config {
 	joinAddr := ""
 	if leaderConfig != nil {
@@ -26,48 +44,48 @@ func (a *RandomApiFactory) Config(bootstrap bool, leaderConfig *protect.Config) 
 
 	return &protect.Config{
 		RaftHost:  "localhost",
-		RaftPort:  a.getRandomPort(),
+		RaftPort:  GetRandomPort(),
 		ApiHost:   "localhost",
-		ApiPort:   a.getRandomPort(),
-		DataDir:   a.getRandomDataDir(),
+		ApiPort:   GetRandomPort(),
+		DataDir:   GetRandomDataDir(),
 		JoinAddr:  joinAddr,
 		Bootstrap: bootstrap,
 	}
 
 }
-func (a *RandomApiFactory) getRandomPort() int {
-	l, _ := net.Listen("tcp", ":0")
-	defer l.Close()
-	addrParts := strings.Split(l.Addr().String(), ":")
-	port, _ := strconv.Atoi(addrParts[len(addrParts)-1])
 
-	return port
-}
-func (a *RandomApiFactory) getRandomDataDir() string {
-	nodeStr := fmt.Sprintf("%07x", rand.Int())[0:7]
-
-	return fmt.Sprintf("test-data/%s", nodeStr)
+type TestCluster struct {
+	leaderConfig    protect.Config
+	followerConfigs []protect.Config
 }
 
-func NewMemCluster() protect.Config {
+// Build a random TestCluster and return configs used to create
+func NewTestCluster(nodes int) *TestCluster {
 	rand.Seed(time.Now().UnixNano())
-
-	factory := new(RandomApiFactory)
-	cfg1 := factory.Config(true, nil)
-	cfg2 := factory.Config(false, cfg1)
-	cfg3 := factory.Config(false, cfg1)
-
 	raft.RegisterCommand(&command.WriteCommand{})
 
-	go run(*cfg1)
-	go run(*cfg2)
-	go run(*cfg3)
+	factory := new(RandomApiFactory)
+
+	leaderConfig := factory.Config(true, nil)
+	go runTestServer(*leaderConfig)
+
+	followers := make([]protect.Config, nodes-1, nodes-1)
+
+	for i := 0; i < nodes-1; i++ {
+		cfg := factory.Config(false, leaderConfig)
+		go runTestServer(*cfg)
+
+		followers[i] = *cfg
+	}
 
 	time.Sleep(300 * time.Millisecond)
-	return *cfg1
+	return &TestCluster{
+		leaderConfig:    *leaderConfig,
+		followerConfigs: followers,
+	}
 }
 
-func run(cfg protect.Config) {
+func runTestServer(cfg protect.Config) {
 	svc := protect.Service{}
 	if err := svc.Run(cfg); err != nil {
 		log.Fatal(err)
