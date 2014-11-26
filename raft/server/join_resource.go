@@ -10,7 +10,7 @@ type JoinResource struct {
 	raftServer raft.Server
 }
 
-func (r *JoinResource) joinHandler(w http.ResponseWriter, req *http.Request) {
+func (r *JoinResource) joinCluster(w http.ResponseWriter, req *http.Request) {
 	command := &raft.DefaultJoinCommand{}
 
 	if err := json.NewDecoder(req.Body).Decode(&command); err != nil {

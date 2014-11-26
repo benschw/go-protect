@@ -88,6 +88,8 @@ func (s *MySuite) TestProtect_GetKeyFromFollower(c *C) {
 }
 
 func (s *MySuite) TestCluster_GetMembers(c *C) {
+
+	// given
 	expected := make([]string, s.members, s.members)
 	for i, cfg := range s.cluster.followerConfigs {
 		expected[i] = fmt.Sprintf("http://%s:%d", cfg.RaftHost, cfg.RaftPort)
@@ -104,11 +106,12 @@ func (s *MySuite) TestCluster_GetMembers(c *C) {
 
 	found := make([]string, len(members), len(members))
 	i := 0
-	for _, peer := range members {
-		found[i] = peer.ConnectionString
+	for _, member := range members {
+		found[i] = member.RaftConnectionString
 		i++
 	}
 	sort.Strings(found)
+
 	c.Assert(found, DeepEquals, expected)
 }
 
@@ -129,5 +132,5 @@ func (s *MySuite) TestCluster_GetLeader(c *C) {
 
 	// then
 	c.Assert(err, Equals, nil)
-	c.Assert(leader, Not(Equals), "")
+	c.Assert(leader.RaftConnectionString, Equals, fmt.Sprintf("http://%s:%d", s.cluster.leaderConfig.RaftHost, s.cluster.leaderConfig.RaftPort))
 }

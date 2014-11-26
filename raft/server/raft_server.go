@@ -73,6 +73,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Joins new cluster as the first node
 func (s *Server) Bootstrap() error {
 	if !s.raftServer.IsLogEmpty() {
 		return errors.New("Cannot bootstrap new cluster with an existing log")
@@ -85,27 +86,20 @@ func (s *Server) Bootstrap() error {
 	return err
 }
 
-// Either Joins an existing leader or Initializes a new cluster
-func (s *Server) IsInitialized() bool {
-	return !s.raftServer.IsLogEmpty()
+// Joins an existing cluster using HTTP client
+func (s *Server) Join(leader string) error {
+	if s.IsInitialized() {
+		return errors.New(fmt.Sprintf("Node already a part of a cluster. Cannot join leader %s", leader))
+	}
+
+	// use the raft client to join existing cluster
+	raftClient := client.RaftMembershipClient{Host: fmt.Sprintf("http://%s", leader)}
+	return raftClient.Join(s.raftServer.Name(), s.connectionString())
 }
 
-// Either Joins an existing leader or Initializes a new cluster
-func (s *Server) Join(leader string) error {
-
-	if leader == "" {
-		return errors.New("Must specify a leader to join a cluster")
-	}
-
-	if !s.raftServer.IsLogEmpty() {
-		return errors.New("Cannot join with an existing log")
-	}
-
-	// Join to leader if specified.
-
-	c := client.RaftMembershipClient{Host: fmt.Sprintf("http://%s", leader)}
-	err := c.Join(s.raftServer.Name(), s.connectionString())
-	return err
+// Checks is node is already a part of a cluster
+func (s *Server) IsInitialized() bool {
+	return !s.raftServer.IsLogEmpty()
 }
 
 // Starts the http server.
@@ -119,7 +113,7 @@ func (s *Server) ListenAndServe() error {
 
 	joinResource := JoinResource{raftServer: s.raftServer}
 
-	s.router.HandleFunc("/join", joinResource.joinHandler).Methods("POST")
+	s.router.HandleFunc("/join", joinResource.joinCluster).Methods("POST")
 
 	return s.httpServer.ListenAndServe()
 }

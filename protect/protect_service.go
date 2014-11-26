@@ -25,31 +25,18 @@ func (s *Service) Run(cfg Config) error {
 	log.Printf("  API Server: http://%s", apiConnectionString)
 	log.Println()
 
-	// Configuring
+	// Make Data Dir
 	if err := os.MkdirAll(cfg.DataDir, 0744); err != nil {
 		log.Fatalf("Unable to create path: %v", err)
 	}
 
+	// Build Dependencies
 	db := db.New()
 
-	raftServer := server.New(cfg.DataDir, db, cfg.RaftHost, cfg.RaftPort)
+	var raftServer = server.New(cfg.DataDir, db, cfg.RaftHost, cfg.RaftPort)
 
 	todoResource := &KeyResource{repo: Repository{db: db, raftServer: raftServer}}
 	clusterResource := &ClusterResource{raftServer: raftServer, config: cfg}
-
-	// Start API HTTP Server
-	log.Println("Initializing API Server")
-
-	r := gin.Default()
-
-	r.GET("/cluster/member", clusterResource.GetMembers)
-	r.GET("/cluster/peer", clusterResource.GetPeers)
-	r.GET("/cluster/leader", clusterResource.GetLeader)
-
-	r.GET("/key/:id", todoResource.GetKey)
-	r.POST("/key", todoResource.CreateKey)
-
-	go r.Run(apiConnectionString)
 
 	// Start Raft Server
 	log.Printf("Initializing Raft Server: %s", cfg.DataDir)
@@ -69,6 +56,7 @@ func (s *Service) Run(cfg Config) error {
 	case cfg.JoinAddr != "" && !raftServer.IsInitialized():
 		log.Println("Attempting to join leader:", cfg.JoinAddr)
 		for i := 0; i < 10; i++ {
+
 			err := raftServer.Join(cfg.JoinAddr)
 			if err != nil && i >= 10 {
 				return err
@@ -89,7 +77,21 @@ func (s *Service) Run(cfg Config) error {
 		log.Println("Recovering from log")
 	}
 
-	log.Fatal(raftServer.ListenAndServe())
+	go raftServer.ListenAndServe()
+
+	// Start API HTTP Server
+	log.Println("Initializing API Server")
+
+	r := gin.Default()
+
+	r.GET("/cluster/member", clusterResource.GetMembers)
+	r.GET("/cluster/peer", clusterResource.GetPeers)
+	r.GET("/cluster/leader", clusterResource.GetLeader)
+
+	r.GET("/key/:id", todoResource.GetKey)
+	r.POST("/key", todoResource.CreateKey)
+
+	r.Run(apiConnectionString)
 
 	return nil
 }
