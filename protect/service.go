@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"os"
+	"time"
 )
 
 type Service struct {
@@ -66,9 +67,18 @@ func (s *Service) Run(cfg Config) error {
 		break
 	case cfg.JoinAddr != "" && !raftServer.IsInitialized():
 		log.Println("Attempting to join leader:", cfg.JoinAddr)
-
-		if err := raftServer.Join(cfg.JoinAddr); err != nil {
-			return err
+		for i := 0; i < 10; i++ {
+			err := raftServer.Join(cfg.JoinAddr)
+			if err != nil && i >= 10 {
+				return err
+			}
+			if err != nil {
+				log.Println("FAIL! waiting to try again...")
+				time.Sleep(100 * time.Millisecond)
+			} else {
+				log.Println("Joined leader:", cfg.JoinAddr)
+				break
+			}
 		}
 		break
 	case cfg.JoinAddr != "" && raftServer.IsInitialized():
