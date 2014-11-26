@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/benschw/go-protect/client"
 	"github.com/benschw/go-protect/protect"
+	. "gopkg.in/check.v1"
 	"log"
 	"testing"
 )
@@ -11,83 +12,82 @@ import (
 var _ = fmt.Print // For debugging; delete when done.
 var _ = log.Print // For debugging; delete when done.
 
-var cfg protect.Config
+// Hook up gocheck into the "go test" runner.
+func Test(t *testing.T) { TestingT(t) }
 
-func init() {
-	cfg = NewMemCluster()
+type MySuite struct {
+	cfg protect.Config
 }
 
-func TestCreateKey(t *testing.T) {
+var _ = Suite(&MySuite{})
+
+func (s *MySuite) SetUpSuite(c *C) {
+	s.cfg = NewMemCluster()
+}
+
+// func (s *MySuite) TestHelloWorld(c *C) {
+// 	c.Assert(42, Equals, "42")
+// 	c.Assert(io.ErrClosedPipe, ErrorMatches, "io: .*on closed pipe")
+// 	c.Check(42, Equals, 42)
+// }
+
+func (s *MySuite) TestCreateKey(c *C) {
 
 	// given
-	client := client.ProtectClient{Host: fmt.Sprintf("http://%s:%d", cfg.ApiHost, cfg.ApiPort)}
+	client := client.ProtectClient{Host: fmt.Sprintf("http://%s:%d", s.cfg.ApiHost, s.cfg.ApiPort)}
 
+	idStr := "foo"
 	keyStr := "1g34jh142jhg1234j412uyg142iuy124guy142g"
 
 	// when
-	key, err := client.CreateKey("foo", keyStr)
+	key, err := client.CreateKey(idStr, keyStr)
 
 	//then
-	if err != nil {
-		t.Error(err)
-	}
-
-	if key.Id != "foo" && key.Key != keyStr {
-		t.Error("returned key not right")
-	}
+	c.Assert(err, Equals, nil)
+	c.Assert(key.Id, Equals, idStr)
+	c.Assert(key.Key, Equals, keyStr)
 }
 
-func TestGetKey(t *testing.T) {
+func (s *MySuite) TestGetKey(c *C) {
 
 	// given
-	client := client.ProtectClient{Host: fmt.Sprintf("http://%s:%d", cfg.ApiHost, cfg.ApiPort)}
+	client := client.ProtectClient{Host: fmt.Sprintf("http://%s:%d", s.cfg.ApiHost, s.cfg.ApiPort)}
+
+	idStr := "foo"
 	keyStr := "1g34jh142jhg1234j412uyg142iuy124guy142g"
-	keyCreate, _ := client.CreateKey("foo", keyStr)
-	id := keyCreate.Id
+	client.CreateKey(idStr, keyStr)
 
 	// when
-	key, err := client.GetKey(id)
+	key, err := client.GetKey(idStr)
 
 	// then
-	if err != nil {
-		t.Error(err)
-	}
-
-	if key.Id != "foo" && key.Key != keyStr {
-		t.Error("returned todo not right")
-	}
+	c.Assert(err, Equals, nil)
+	c.Assert(key.Id, Equals, idStr)
+	c.Assert(key.Key, Equals, keyStr)
 }
 
-func TestMgmtGetPeers(t *testing.T) {
+func (s *MySuite) TestMgmtGetPeers(c *C) {
 
 	// given
-	client := client.MgmtClient{Host: fmt.Sprintf("http://%s:%d", cfg.ApiHost, cfg.ApiPort)}
+	client := client.MgmtClient{Host: fmt.Sprintf("http://%s:%d", s.cfg.ApiHost, s.cfg.ApiPort)}
 
 	// when
 	peers, err := client.GetPeers()
 
 	// then
-	if err != nil {
-		t.Error(err)
-	}
-	if len(peers) != 2 {
-		t.Errorf("wrong number of peers; found: %d", len(peers))
-	}
+	c.Assert(err, Equals, nil)
+	c.Assert(len(peers), Equals, 2)
 }
 
-func TestMgmtGetLeader(t *testing.T) {
+func (s *MySuite) TestMgmtGetLeader(c *C) {
 
 	// given
-	client := client.MgmtClient{Host: fmt.Sprintf("http://%s:%d", cfg.ApiHost, cfg.ApiPort)}
+	client := client.MgmtClient{Host: fmt.Sprintf("http://%s:%d", s.cfg.ApiHost, s.cfg.ApiPort)}
 
 	// when
 	leader, err := client.GetLeader()
 
 	// then
-	if err != nil {
-		t.Error(err)
-	}
-	if leader == "" {
-		t.Error("leader name not returned")
-	}
+	c.Assert(err, Equals, nil)
+	c.Assert(leader, Not(Equals), "")
 }
