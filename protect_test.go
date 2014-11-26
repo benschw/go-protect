@@ -5,6 +5,7 @@ import (
 	"github.com/benschw/go-protect/client"
 	. "gopkg.in/check.v1"
 	"log"
+	"sort"
 	"testing"
 	"time"
 )
@@ -38,7 +39,7 @@ func (s *MySuite) SetUpSuite(c *C) {
 	s.fClusterClient = client.ClusterClient{Host: fmt.Sprintf("http://%s:%d", s.cluster.followerConfigs[0].ApiHost, s.cluster.followerConfigs[0].ApiPort)}
 }
 
-func (s *MySuite) TestCreateKey(c *C) {
+func (s *MySuite) TestProtect_CreateKey(c *C) {
 
 	// given
 	idStr := "foo"
@@ -53,7 +54,7 @@ func (s *MySuite) TestCreateKey(c *C) {
 	c.Assert(key.Key, Equals, keyStr)
 }
 
-func (s *MySuite) TestGetKey(c *C) {
+func (s *MySuite) TestProtect_GetKey(c *C) {
 
 	// given
 	idStr := "foo"
@@ -69,7 +70,7 @@ func (s *MySuite) TestGetKey(c *C) {
 	c.Assert(key.Key, Equals, keyStr)
 }
 
-func (s *MySuite) TestGetKeyFromFollower(c *C) {
+func (s *MySuite) TestProtect_GetKeyFromFollower(c *C) {
 
 	// given
 	idStr := "foo"
@@ -86,7 +87,32 @@ func (s *MySuite) TestGetKeyFromFollower(c *C) {
 	c.Assert(key.Key, Equals, keyStr)
 }
 
-func (s *MySuite) TestClusterGetPeers(c *C) {
+func (s *MySuite) TestCluster_GetMembers(c *C) {
+	expected := make([]string, s.members, s.members)
+	for i, cfg := range s.cluster.followerConfigs {
+		expected[i] = fmt.Sprintf("http://%s:%d", cfg.RaftHost, cfg.RaftPort)
+	}
+	expected[s.members-1] = fmt.Sprintf("http://%s:%d", s.cluster.leaderConfig.RaftHost, s.cluster.leaderConfig.RaftPort)
+	sort.Strings(expected)
+
+	// when
+	members, err := s.clusterClient.GetMembers()
+
+	// then
+	c.Assert(err, Equals, nil)
+	c.Assert(len(members), Equals, s.members)
+
+	found := make([]string, len(members), len(members))
+	i := 0
+	for _, peer := range members {
+		found[i] = peer.ConnectionString
+		i++
+	}
+	sort.Strings(found)
+	c.Assert(found, DeepEquals, expected)
+}
+
+func (s *MySuite) TestCluster_GetPeers(c *C) {
 
 	// when
 	peers, err := s.clusterClient.GetPeers()
@@ -96,7 +122,7 @@ func (s *MySuite) TestClusterGetPeers(c *C) {
 	c.Assert(len(peers), Equals, s.members-1)
 }
 
-func (s *MySuite) TestClusterGetLeader(c *C) {
+func (s *MySuite) TestCluster_GetLeader(c *C) {
 
 	// when
 	leader, err := s.clusterClient.GetLeader()
@@ -104,14 +130,4 @@ func (s *MySuite) TestClusterGetLeader(c *C) {
 	// then
 	c.Assert(err, Equals, nil)
 	c.Assert(leader, Not(Equals), "")
-}
-
-func (s *MySuite) TestClusterGetMembers(c *C) {
-
-	// when
-	members, err := s.clusterClient.GetMembers()
-
-	// then
-	c.Assert(err, Equals, nil)
-	c.Assert(len(members), Equals, s.members)
 }

@@ -1,7 +1,7 @@
 package protect
 
 import (
-	// "github.com/benschw/go-protect/api"
+	"fmt"
 	"github.com/benschw/go-protect/raft/server"
 	"github.com/gin-gonic/gin"
 	"github.com/goraft/raft"
@@ -17,7 +17,10 @@ func (r *ClusterResource) GetMembers(c *gin.Context) {
 	var members map[string]*raft.Peer = r.raftServer.RaftServer().Peers()
 
 	name := r.raftServer.RaftServer().Leader()
-	members[name] = &raft.Peer{}
+	members[name] = &raft.Peer{
+		Name:             name,
+		ConnectionString: fmt.Sprintf("http://%s:%d", r.config.RaftHost, r.config.RaftPort),
+	}
 
 	c.JSON(200, members)
 }
