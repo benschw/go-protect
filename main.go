@@ -2,14 +2,17 @@ package main
 
 import (
 	"github.com/benschw/go-protect/protect"
+	"github.com/benschw/go-protect/raft/command"
 	// "gopkg.in/yaml.v1"
 	"flag"
 	"fmt"
 	"github.com/goraft/raft"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -57,7 +60,7 @@ func main() {
 		flag.Usage()
 		log.Fatal("Command argument required")
 	}
-	command := flag.Arg(0)
+	cmd := flag.Arg(0)
 
 	// Populate Config
 	rAddrParts := strings.Split(raftAddr, ":")
@@ -74,8 +77,12 @@ func main() {
 		Bootstrap: bootstrap,
 	}
 
+	rand.Seed(time.Now().UnixNano())
+
+	raft.RegisterCommand(&command.WriteCommand{})
+
 	// Run Main App
-	switch command {
+	switch cmd {
 	case "serve":
 		svc := protect.Service{}
 
@@ -84,54 +91,6 @@ func main() {
 		}
 	default:
 		flag.Usage()
-		log.Fatalf("Unknown Command: %s", command)
+		log.Fatalf("Unknown Command: %s", cmd)
 	}
-
-	// app := cli.NewApp()
-	// app.Name = "go-protect"
-	// app.Usage = "work with the `go-protect` service"
-	// app.Version = "0.0.1"
-
-	// app.Flags = []cli.Flag{
-	// 	cli.StringFlag{"config, c", "config.yaml", "config file to use"},
-	// }
-
-	// app.Commands = []cli.Command{
-	// 	{
-	// 		Name:  "server",
-	// 		Usage: "Run the http server",
-	// 		Action: func(c *cli.Context) {
-	// 			cfg, err := getConfig(c)
-	// 			if err != nil {
-	// 				log.Fatal(err)
-	// 				return
-	// 			}
-
-	// 			svc := protect.Service{}
-
-	// 			if err = svc.Run(cfg); err != nil {
-	// 				log.Fatal(err)
-	// 			}
-	// 		},
-	// 	},
-	// 	// {
-	// 	// 	Name:  "migratedb",
-	// 	// 	Usage: "Perform database migrations",
-	// 	// 	Action: func(c *cli.Context) {
-	// 	// 		cfg, err := getConfig(c)
-	// 	// 		if err != nil {
-	// 	// 			log.Fatal(err)
-	// 	// 			return
-	// 	// 		}
-
-	// 	// 		svc := service.TodoService{}
-
-	// 	// 		if err = svc.Migrate(cfg); err != nil {
-	// 	// 			log.Fatal(err)
-	// 	// 		}
-	// 	// 	},
-	// 	// },
-	// }
-	// app.Run(os.Args)
-
 }

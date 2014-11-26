@@ -3,15 +3,11 @@ package protect
 import (
 	//	"fmt"
 	"fmt"
-	"github.com/benschw/go-protect/raft/command"
 	"github.com/benschw/go-protect/raft/db"
 	"github.com/benschw/go-protect/raft/server"
 	"github.com/gin-gonic/gin"
-	"github.com/goraft/raft"
 	"log"
-	"math/rand"
 	"os"
-	"time"
 )
 
 type Service struct {
@@ -29,10 +25,6 @@ func (s *Service) Run(cfg Config) error {
 	log.Println()
 
 	// Configuring
-	rand.Seed(time.Now().UnixNano())
-
-	raft.RegisterCommand(&command.WriteCommand{})
-
 	if err := os.MkdirAll(cfg.DataDir, 0744); err != nil {
 		log.Fatalf("Unable to create path: %v", err)
 	}

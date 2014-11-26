@@ -7,5 +7,5 @@ install:
 - make deps
 
 script:
-- make build test-all
+- make build test
 
