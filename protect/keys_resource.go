@@ -1,7 +1,7 @@
 package protect
 
 import (
-	"github.com/benschw/go-protect/api"
+	"github.com/benschw/go-protect/protect/api"
 	"github.com/gin-gonic/gin"
 	"log"
 )

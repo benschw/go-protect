@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/benschw/go-protect/client"
+	"github.com/benschw/go-protect/protect/client"
 	. "gopkg.in/check.v1"
 	"log"
 	"sort"
